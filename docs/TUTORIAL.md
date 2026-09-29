@@ -116,12 +116,19 @@ Then collect `viewModel.count` with `collectAsStateWithLifecycle()`. State owner
 Each image is a full device capture with no crop. Open any screenshot at full resolution:
 
 - [Home: state, animation, Canvas, and AndroidView](images/app-overview.png)
+- [Home: dialog as a separate window](images/app-home-dialog.png)
 - [Gallery: Material components and filtering](images/app-gallery.png)
+- [Gallery: lower component categories](images/app-gallery-lower.png)
 - [Feed: lazy list](images/app-feed.png)
+- [Feed: after scrolling](images/app-feed-scroll.png)
 - [Grid: lazy grid](images/app-grid.png)
+- [Grid: later tiles after scrolling](images/app-grid-scroll.png)
 - [Forms: text, selection, and switches](images/app-forms.png)
+- [Forms: keyboard and live text update](images/app-forms-typed.png)
+- [Forms: exposed layout preset menu](images/app-forms-menu.png)
 - [Motion: slider, Canvas, and animated visibility](images/app-motion.png)
 - [Flow: StateFlow, SharedFlow, and cold flow](images/app-flow.png)
+- [Flow: changed state, one-off event, completed cold flow](images/app-flow-active.png)
 - [Perfetto: UI hierarchy, 3D stack, and node inspection](images/perfetto-ui-hierarchy.png)
 - [Perfetto: timing and scheduling timeline](images/perfetto-timeline.png)
 
