@@ -49,7 +49,7 @@ export PERFETTO_DIR="$(cd ../perfetto-hierarchy && pwd)"
 ./scripts/build_hierarchy_app.sh
 ```
 
-The build script builds `perfetto-datasource.aar` from the Perfetto branch, builds `ui-tracing-perfetto.aar` from the CL checkout, then builds the debug app and instrumentation APK against the patched Compose sources. It places the generated AARs in the ignored `app/libs/` directory. The app's startup log should say `Perfetto UI hierarchy tracing initialized`:
+The build script builds `perfetto-datasource.aar` from the Perfetto branch, builds `ui-tracing-perfetto.aar` from the CL checkout, then builds the debug app and instrumentation APK against the patched Compose sources. It places the generated AARs in the ignored `app/libs/` directory. After installation, the app's startup log should say `Perfetto UI hierarchy tracing initialized`.
 
 The SDK AAR command defaults to `arm64-v8a`, matching the Pixel 4 devices used here. For another ABI, edit `--abis` in `scripts/build_hierarchy_app.sh` to include that device's ABI.
 

@@ -247,7 +247,7 @@ This repo is a teaching and capture-validation tool, not a production benchmark 
 - No screenshot/video-backed E2E assertion; instrumentation verifies semantic UI outcomes only.
 - Winscope ViewCapture, layer-stack/3D, and synchronized video depend on device support and are not included in the Pixel 4 capture.
 - The app's examples use local screen state for clarity; a next lesson could move selected state into a `ViewModel`, add navigation/back-stack, and compare lifecycle/recomposition behavior.
-- CI compiles the app; connected-device E2E remains a local device command.
+- CI runs the E2E journey on an API 35 emulator; the documented physical Pixel run remains useful for device-specific behavior.
 - The default 60-second trace collects everything and creates a large file. Reduce `duration_ms` in the config for focused exploration, and use release-like builds/benchmark tools for performance measurements.
 
 When changing behavior, keep the capture config, device build details, reproduction steps, and screenshots together. A trace without a clearly described action is difficult to interpret.
