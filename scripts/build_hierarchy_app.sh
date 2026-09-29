@@ -10,7 +10,7 @@ ANDROID_HOME="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
 
 "$ROOT/scripts/prepare_androidx_checkout.sh"
 
-python3 "$PERFETTO_DIR/tools/build_java_sdk_aar.py" \
+"$PERFETTO_DIR/tools/build_java_sdk_aar" \
   --abis arm64-v8a \
   --aar-out "$ROOT/app/libs/perfetto-datasource.aar" \
   --android-jar "$ANDROID_HOME/platforms/android-35/android.jar"

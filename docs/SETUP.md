@@ -18,6 +18,7 @@ cd "$WORKSPACE_DIR"
 git clone https://github.com/fiveapplesonthetable/compose-trace-lab.git compose-tracing-demo
 git clone https://github.com/google/perfetto.git perfetto-hierarchy
 git -C perfetto-hierarchy checkout dev/zezeozue/ui_hierarchy
+git -C perfetto-hierarchy fetch origin 7ef150035ea7b3e10674314a7c89789f64ea5a81
 git -C perfetto-hierarchy checkout 7ef150035ea7b3e10674314a7c89789f64ea5a81
 git clone https://android.googlesource.com/platform/frameworks/support androidx-hierarchy
 git -C androidx-hierarchy fetch https://android.googlesource.com/platform/frameworks/support refs/changes/66/4328066/1
@@ -108,7 +109,7 @@ includeProject(":trace-lab-app", "../compose-tracing-demo/androidx-harness", [Bu
 
 Set `gradle/wrapper/gradle-wrapper.properties` to `distributionUrl=https\://services.gradle.org/distributions/gradle-9.8.0-rc-1-bin.zip`, then copy `androidx-harness/ui-tracing-perfetto.build.gradle` to the CL module's `compose/ui/ui-tracing-perfetto/build.gradle`. `androidx-harness/build.gradle` is the `:trace-lab-app` build file. The checked-in preparation script is the canonical reproducible version of those edits and calculates the app path if your workspace differs. Do not commit these AndroidX-local harness edits to the AndroidX checkout when you only intend to build this demo.
 
-The build script builds `perfetto-datasource.aar` from the Perfetto branch, builds `ui-tracing-perfetto.aar` from the CL checkout, then builds the debug app and instrumentation APK against the patched Compose sources. It places the generated AARs in the ignored `app/libs/` directory. After installation, the app's startup log should say `Perfetto UI hierarchy tracing initialized`.
+The build script invokes Perfetto's `tools/build_java_sdk_aar` executable (this checkout has no `.py` suffix) to build `perfetto-datasource.aar`, builds `ui-tracing-perfetto.aar` from the CL checkout, then builds the debug app and instrumentation APK against the patched Compose sources. It places the generated AARs in the ignored `app/libs/` directory. After installation, the app's startup log should say `Perfetto UI hierarchy tracing initialized`.
 
 The SDK AAR command defaults to `arm64-v8a`, matching the Pixel 4 devices used here. For another ABI, edit `--abis` in `scripts/build_hierarchy_app.sh` to include that device's ABI.
 
