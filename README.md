@@ -8,13 +8,14 @@ A runnable Compose teaching app and a real Perfetto UI hierarchy capture setup. 
 
 The captured trace was produced by the app with the AndroidX Compose hooks and matching Perfetto UI. In a 60-second interactive session, it recorded 126 snapshots across windows and 101 frames for the app's main window. It contains 8,950 composable calls, 3,319 scope events, 860 scope invalidations, 3,244 state reads, 1,716 state writes, 1,878 state changes, 622 animation frames, and 21 scroll events. The recomposition-cause table attributed a changed integer state to `TraceLab` in `MainActivity.kt`. This is enough to follow “what state changed, which scopes ran, and what UI tree was present?” alongside the regular frame and scheduler timeline.
 
-This does not prove that recomposition caused a slow frame. Use FrameTimeline and scheduler tracks to establish whether a frame was late and what work was running. `include_everything` produces high-volume diagnostic data: the broad sample was 37 MB. Use a short, focused recording for debugging, and use a benchmark harness for performance numbers.
+In practice, this is useful for answering structural and causal questions during a known interaction: what nodes existed, which state was read or written, which scopes were invalidated, and how the tree changed across snapshots. The viewer let us inspect 2D bounds, the 3D exploded stack, tree selections, and properties. It is less useful as a standalone performance verdict: the capture does not show by itself whether a recomposition missed a frame deadline, nor does it identify the slowest composable. Pair it with FrameTimeline and scheduler tracks at the same timestamp. `include_everything` produces high-volume diagnostic data: the broad sample was 37 MB. Use a short, focused recording for debugging, and use a benchmark harness for performance numbers.
 
 ## Start here
 
 1. Read **[The Compose and tracing tutorial](docs/TUTORIAL.md)**. It explains the screens and tracing concepts from a Views/XML starting point.
 2. Follow **[the full setup and rebuild guide](docs/SETUP.md)** to check out the matching Perfetto branch and AndroidX change, build the actual hierarchy-enabled APK, run its instrumented journey, capture, and open the trace.
 3. Use [`scripts/capture_trace.sh`](scripts/capture_trace.sh) after installing the hierarchy-enabled app. It encodes the config with the matching branch `protoc` before sending it to the device.
+4. Browse the [100-image screenshot gallery](docs/IMAGE_GALLERY.md) for full-device app states, 2D/3D hierarchy snapshots, node inspections, and the timing timeline.
 
 ## What the app teaches
 
@@ -38,3 +39,5 @@ Winscope ViewCapture, SurfaceFlinger layer-stack/3D, and synchronized video sour
 - [`trace_config_available_sources.textproto`](trace_config_available_sources.textproto): full hierarchy and system trace config.
 - [`androidx-harness/`](androidx-harness): local build harness that compiles the CL-patched Compose sources.
 - [`docs/images/`](docs/images/): app and Perfetto screenshots.
+
+The screenshots include 20 uncropped Pixel app states, 42 hierarchy snapshots scrubbed in both 2D and 3D, 35 node selections, a timeline, and a side-by-side showcase. They are examples from one capture and are not a claim that every Compose API or possible UI state is covered.

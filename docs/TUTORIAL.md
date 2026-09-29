@@ -126,11 +126,19 @@ Each image is a full device capture with no crop. Open any screenshot at full re
 - [Forms: text, selection, and switches](images/app-forms.png)
 - [Forms: keyboard and live text update](images/app-forms-typed.png)
 - [Forms: exposed layout preset menu](images/app-forms-menu.png)
+- [Forms: expanded layout preset](images/app-forms-expanded.png)
+- [Forms: selected radio option](images/app-forms-radio.png)
+- [Forms: submitted result](images/app-forms-submit.png)
 - [Motion: slider, Canvas, and animated visibility](images/app-motion.png)
+- [Home: counter after repeated state updates](images/app-home-count10.png)
+- [Home: animated content expanded](images/app-home-expanded.png)
 - [Flow: StateFlow, SharedFlow, and cold flow](images/app-flow.png)
 - [Flow: changed state, one-off event, completed cold flow](images/app-flow-active.png)
+- [Flow: coroutine controls](images/app-flow-coroutine.png)
 - [Perfetto: UI hierarchy, 3D stack, and node inspection](images/perfetto-ui-hierarchy.png)
 - [Perfetto: timing and scheduling timeline](images/perfetto-timeline.png)
+
+The [complete screenshot gallery](IMAGE_GALLERY.md) includes every captured app state, 21 hierarchy snapshots in both 2D and 3D, and 35 node-property selections. The source images are full-resolution captures; the gallery links each one directly.
 
 ## 6. Run the end-to-end interaction journey
 
