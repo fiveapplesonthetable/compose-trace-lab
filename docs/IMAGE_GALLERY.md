@@ -49,6 +49,8 @@ Each comparison uses the screen title captured in the Compose tree and selects t
 
 Open either image at full resolution to inspect the tree and snapshot state. Each 2D/3D pair uses the same snapshot index.
 
+These 21 pairs are successive snapshots from the same Home-screen trace, not 21 different app pages. In these captures **Only visible** is off, so off-screen scroll descendants are included. One recorded `#overview-scroll` bound is `[44, 558, 1124, 2341]` while the containing `DecorView` is `[0, 0, 1080, 2280]`: the reported right edge exceeds the window by 44 px. This is a captured bounds/viewport mismatch whose cause has not been established; do not infer from the outline alone that the phone drew outside its window. These are full viewer screenshots, not cropped phone screenshots. For seven screen-by-screen matches, use the [comparison walkthrough](SCREEN_COMPARISONS.md), where **Only visible** is on and **3D Stack** is off.
+
 | Snapshot | 2D layout | 3D stack |
 |---:|---|---|
 | 1 | [2D](images/perfetto-snapshots/snapshot-01-2d.png) | [3D](images/perfetto-snapshots/snapshot-01-3d.png) |
@@ -75,7 +77,15 @@ Open either image at full resolution to inspect the tree and snapshot state. Eac
 
 ## Node tree and properties selections
 
-Each image shows a selected row and the corresponding viewer state. These are clickable full-resolution captures.
+Each image shows a selected row and the corresponding viewer state. The set follows the captured Home tree from the Android window into Compose, then through the page's controls and embedded Android View. The selected row and the right-side properties panel name the exact node; the numbered links below preserve that order. Open them at full size because the custom modifier and property text is dense.
+
+- **Android window and View interop (01–09):** follow `DecorView` and its `LinearLayout`, `FrameLayout`, `ComposeView`, and `AndroidComposeView` children; then inspect the `AndroidViewsHandler`, `ViewFactoryHolder`, and actual `TextView`. This shows where the classic View sits inside the Compose host.
+- **Compose root and scrolling (10–12):** inspect `ComposeRoot`, its root `Node`, and `Scrollable` tagged `overview-scroll`. The scroll node exposes its scroll action and current/max range.
+- **Home heading and actions (13–20):** inspect the heading card, title/description text, counter semantics, and the two buttons. Button properties include role, click action, and test tags such as `increment` and `open-dialog`.
+- **Stateful controls (21–30):** inspect the controls container, detail switch and its state/action, checkbox semantics, displayed value, slider progress/action, and slider thumb. Compare accessible state descriptions with the visible controls.
+- **Canvas and interop card (31–35):** inspect the chart node and its bounds/modifiers, then the AndroidView card, the clickable tagged `android-view` wrapper, and `Nested layout samples`. The last text node is marked invisible and lies beyond the current viewport, which is why the hierarchy can contain a node that is not visible on the phone.
+
+These selections demonstrate what the captured properties can tell you—bounds, semantics, actions, test tags, modifiers, and View/Compose boundaries. They all come from one Home-screen trace; use the matched screen pairs above to compare the other six pages.
 
 - [node-01.png](images/perfetto-nodes/node-01.png)
 - [node-02.png](images/perfetto-nodes/node-02.png)

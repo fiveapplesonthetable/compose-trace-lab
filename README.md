@@ -4,7 +4,7 @@ A runnable Compose teaching app and a real Perfetto UI hierarchy capture setup. 
 
 ![Compose Trace Lab running beside the Perfetto hierarchy viewer](docs/images/showcase.png)
 
-In the hierarchy pane, **Only visible** is unchecked. The Home screen uses a vertically scrollable `Column`, so the viewer also outlines descendants currently below the viewport; its 3D stack offsets hierarchy levels to make them easier to distinguish. Those outlines are not evidence that Compose drew outside the window. Turn on **Only visible** or switch off **3D Stack** to inspect the on-screen 2D bounds.
+In the hierarchy pane, **Only visible** is unchecked and **3D Stack** is on. The scrollable Home screen therefore includes off-screen descendants, and the 3D projection offsets nested rectangles. There is also a real discrepancy in the captured hierarchy data: the `#overview-scroll` node reports a right edge of 1124 px while its containing `DecorView` is 1080 px wide. So the screenshot alone cannot establish whether the phone rendered outside its viewport; the earlier explanation that all of the spill was expected off-screen content was incomplete. This may be a coordinate issue in the historical capture/viewer path, and its cause has not been established. Turn off **3D Stack**, turn on **Only visible**, and compare the selected node's bounds with the window properties. The [screen comparisons](docs/SCREEN_COMPARISONS.md) show that 2D visible-only view beside each phone page.
 
 ## Why the hierarchy trace is useful
 

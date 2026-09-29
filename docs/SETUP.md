@@ -5,44 +5,51 @@ This lab uses two historical development revisions because the `android.ui.hiera
 - Perfetto `dev/zezeozue/ui_hierarchy` (the trace schema, Java SDK AAR, processor module, and UI viewer must come from this same branch).
 - AndroidX Gerrit change `refs/changes/66/4328066/1` (adds the Compose instrumentation hooks and `ui-tracing-perfetto` AAR).
 
-This page records the actual setup used for the checked-in app and screenshots. Expect these old revisions to require their matching Gradle, Android SDK, and source trees. On the tested Linux setup, Java 17, Android SDK platform 35/build tools 36, Perfetto host build dependencies, and the AndroidX checkout's Gradle 9.8.0-rc-1 wrapper were used. The AndroidX harness compiles Compose runtime, UI, animation, and foundation from that checkout; replacing these with current Maven Compose artifacts silently loses the hooks.
+This page records the actual setup used for the checked-in app and screenshots. Expect these old revisions to require their matching Gradle, Android SDK, and source trees. On the tested Linux setup, Java 17, Android SDK platforms 35 and 37.1, Build Tools 36.0.0, Perfetto host build dependencies, and the AndroidX checkout's Gradle 9.8.0-rc-1 wrapper were used. The AndroidX harness compiles Compose runtime, UI, animation, and foundation from that checkout; replacing these with current Maven Compose artifacts silently loses the hooks.
 
 ## 1. Get the source trees
 
-Choose a workspace directory. The commands below assume the lab is at `compose-tracing-demo` and both source trees are its siblings:
+Choose a workspace directory. The commands below use `$HOME/dev`; change it if you prefer another location. Run this block in your first shell. It creates the workspace and clones the lab at `compose-tracing-demo` with both source trees as siblings:
 
 ```sh
+export WORKSPACE_DIR="$HOME/dev"
+mkdir -p "$WORKSPACE_DIR"
+cd "$WORKSPACE_DIR"
 git clone https://github.com/fiveapplesonthetable/compose-trace-lab.git compose-tracing-demo
 git clone https://github.com/google/perfetto.git perfetto-hierarchy
 git -C perfetto-hierarchy checkout dev/zezeozue/ui_hierarchy
+git -C perfetto-hierarchy checkout 7ef150035ea7b3e10674314a7c89789f64ea5a81
 git clone https://android.googlesource.com/platform/frameworks/support androidx-hierarchy
 git -C androidx-hierarchy fetch https://android.googlesource.com/platform/frameworks/support refs/changes/66/4328066/1
-git -C androidx-hierarchy checkout FETCH_HEAD
+git -C androidx-hierarchy checkout 3a1d0ceab3e969fe0ab011628b96bfe902932040
 ```
 
-For this checkout, the tested source revisions were Perfetto `7ef15003` and AndroidX `3a1d0ceab3e969fe0ab011628b96bfe902932040`. Record the actual hashes after checkout; Gerrit patchsets and development branches can move.
+These commands pin the source revisions used for the checked-in app and screenshots. The Perfetto development branch and AndroidX Gerrit patchset can move; the AndroidX commit is the fetched CL revision used here.
 
-Install JDK 17, Python 3, Node/pnpm (Perfetto UI), Git, Ninja, and the Android SDK command-line tools. Set `ANDROID_HOME` (or `ANDROID_SDK_ROOT`) to the SDK directory. Install Android SDK Platform 37.1, Build Tools 36.0.0, and platform-tools. Platform 37.1 is required by the AndroidX harness and tracing library; Platform 35 is only used by the standalone non-tracing fallback app. Install the Perfetto host dependencies and build its tools:
+Install JDK 17, Python 3, Git, and the Android SDK command-line tools. If you use Android Studio, install **Android SDK Command-line Tools (latest)** and **Android SDK Platform-Tools** from **Tools → SDK Manager → SDK Tools**. Perfetto supplies its own Node.js/npm; do not install Node or pnpm separately. Set the SDK location and add its command-line and platform tools to your shell path before using `sdkmanager` or `adb` (adjust the path for your machine):
 
 ```sh
-sdkmanager "platforms;android-37.1" "build-tools;36.0.0" "platform-tools"
+export ANDROID_HOME="$HOME/Android/Sdk"
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
+export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+sdkmanager --licenses
+sdkmanager "platforms;android-35" "platforms;android-37.1" "build-tools;36.0.0" "platform-tools"
 ```
 
-Then install the Perfetto host dependencies and build its tools:
+Platform 37.1 is the AndroidX harness and tracing library compile SDK. The Perfetto SDK AAR build script also reads `platforms/android-35/android.jar`, so Platform 35 is required even for the tracing build. Install the Perfetto host and UI dependencies, then build its tools:
 
 ```sh
 cd perfetto-hierarchy
-./tools/install-build-deps
 ./tools/install-build-deps --ui
 ./tools/gn gen out/default
 ./tools/ninja -C out/default trace_processor_shell protoc
 ```
 
-`--ui` installs the UI dependencies; `./ui/run-dev-server` builds and serves the branch's UI at `http://127.0.0.1:10000`.
+`--ui` installs the host build dependencies and UI dependencies, including Perfetto's hermetic Node/npm. `./ui/run-dev-server` builds and serves the branch's UI at `http://127.0.0.1:10000`.
 
 ## 2. Prepare AndroidX and build the instrumented app
 
-In a new shell, set `WORKSPACE_DIR` to the directory containing the three cloned repositories. The preparation script adds a small app harness and the CL module to the local AndroidX checkout, and adjusts that checkout's wrapper to its required Gradle version. These are local edits in the AndroidX clone, not edits to your public lab checkout.
+In a new shell, set `WORKSPACE_DIR` to the directory containing the three cloned repositories again (shell variables from the first shell do not carry over). The preparation script adds a small app harness and the CL module to the local AndroidX checkout, and adjusts that checkout's wrapper to its required Gradle version. These are local edits in the AndroidX clone, not edits to your public lab checkout.
 
 ```sh
 WORKSPACE_DIR="$HOME/dev" # Change this to the directory containing the clones.
@@ -50,6 +57,7 @@ export LAB_DIR="$WORKSPACE_DIR/compose-tracing-demo"
 cd "$LAB_DIR"
 export ANDROID_HOME="$HOME/Android/Sdk" # change this to your SDK path
 export ANDROID_SDK_ROOT="$ANDROID_HOME"
+export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
 export ANDROIDX_DIR="$WORKSPACE_DIR/androidx-hierarchy"
 export PERFETTO_DIR="$WORKSPACE_DIR/perfetto-hierarchy"
 ./scripts/prepare_androidx_checkout.sh
@@ -109,8 +117,10 @@ adb devices -l
 cd "$ANDROIDX_DIR"
 ANDROID_HOME="$ANDROID_HOME" ANDROID_SDK_ROOT="$ANDROID_HOME" \
   ANDROID_SERIAL=YOUR_DEVICE_SERIAL ALLOW_PUBLIC_REPOS=1 ALLOW_MISSING_PROJECTS=1 PROJECT_PREFIX=:trace-lab-app \
-  ./gradlew -PcomposeTraceLabDir="$(cd ../compose-tracing-demo && pwd)" \
+  ./gradlew -PcomposeTraceLabDir="$LAB_DIR" \
   :trace-lab-app:installDebug --no-daemon --dependency-verification=off
+adb -s YOUR_DEVICE_SERIAL shell monkey -p dev.demo.uitracing 1
+sleep 2
 adb -s YOUR_DEVICE_SERIAL logcat -d -s TraceLab
 ```
 
@@ -120,7 +130,7 @@ Use the harness's `:trace-lab-app:installDebug` task, not the normal root `./gra
 cd "$ANDROIDX_DIR"
 ANDROID_HOME="$ANDROID_HOME" ANDROID_SDK_ROOT="$ANDROID_HOME" \
   ANDROID_SERIAL=YOUR_DEVICE_SERIAL ALLOW_PUBLIC_REPOS=1 ALLOW_MISSING_PROJECTS=1 PROJECT_PREFIX=:trace-lab-app \
-  ./gradlew -PcomposeTraceLabDir="$(cd ../compose-tracing-demo && pwd)" \
+  ./gradlew -PcomposeTraceLabDir="$LAB_DIR" \
   :trace-lab-app:connectedDebugAndroidTest --no-daemon --dependency-verification=off
 ```
 
@@ -133,6 +143,8 @@ The journey passed on both attached Android 13 phones when run without a trace a
 Enable USB debugging, accept the device authorization prompt, then select one serial explicitly. The lab was exercised on Pixel 4 and Pixel 4 XL running Android 13/API 33. Verify that the app producer registered:
 
 ```sh
+adb -s YOUR_DEVICE_SERIAL shell monkey -p dev.demo.uitracing 1
+sleep 2 # Give Application.onCreate time to register the producer.
 adb -s YOUR_DEVICE_SERIAL shell perfetto --query
 adb -s YOUR_DEVICE_SERIAL logcat -d -s TraceLab
 ```
@@ -156,7 +168,7 @@ cd "$PERFETTO_DIR"
 ./ui/run-dev-server
 ```
 
-At `http://127.0.0.1:10000`, open the trace. Select **UI Hierarchy** in the left sidebar for the three-pane viewer. Use the snapshot scrubber to move through the capture; inspect the layout rectangles/3D stack, node tree and properties. Select the hierarchy track or a Compose event to jump between the viewer and exact timeline timestamp. The standard timeline remains useful for correlating hierarchy/state changes with a late frame and scheduled app work.
+At `http://127.0.0.1:10000`, click **Open trace file** and choose the `.pftrace` file. Select **UI Hierarchy** in the left sidebar for the three-pane viewer. Use the snapshot scrubber to move through the capture; inspect the layout rectangles/3D stack, node tree and properties. Select the hierarchy track or a Compose event to jump between the viewer and exact timeline timestamp. The standard timeline remains useful for correlating hierarchy/state changes with a late frame and scheduled app work.
 
 To inspect the same data in SQL, open **Query (SQL)** in that local UI and run:
 

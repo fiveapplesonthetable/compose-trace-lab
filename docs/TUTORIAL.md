@@ -28,7 +28,7 @@ Compose is Android's Kotlin UI toolkit. This project still launches an Android `
 | View visibility toggle | `if (...) { ... }` or `AnimatedVisibility(...)` |
 | View content description | `Modifier.semantics { contentDescription = ... }` |
 
-A composable function is a description of UI, not a `View` object you keep and mutate. Compose calls composables to produce/update a UI tree. When state read by a composable changes, Compose can run that part again; this is **recomposition**. It can skip work when inputs have not changed. Recomposition does not automatically mean a frame was drawn or that the screen changed visibly.
+A composable function is a description of UI, not a `View` object you keep and mutate. Compose's runtime still maintains UI nodes and their state; it calls composables to create or update that runtime-managed tree. When state read by a composable changes, Compose can run the relevant part again; this is **recomposition**. It can skip work when inputs have not changed. Recomposition does not automatically mean a frame was drawn or that the screen changed visibly.
 
 A `Modifier` is a chain of layout, drawing, interaction, and accessibility behavior attached to a composable. It is not CSS. Order can matter: for example, padding before a background paints a different area than padding after it.
 
@@ -46,18 +46,37 @@ The main trade-offs for a Views developer are:
 
 This lab intentionally puts an actual `TextView` inside `AndroidViewCard()` so you can compare Compose content with a classic Android view. It does not imply that all legacy Views must be rewritten before using Compose.
 
+### A small Kotlin bridge before reading the app
+
+You do not need to know Kotlin already, but a few syntax differences make the source easier to read:
+
+- `val name = "Home"` declares a read-only reference; `var count = 0` declares a reassignable one. A `val` reference can still point to a mutable object.
+- Kotlin declares a function with `fun increment() { ... }`; its return type follows the parameter list (`fun doubled(value: Int): Int = value * 2`). `@Composable` is an annotation, like a Java annotation, that marks a function for use inside Compose UI composition. In string templates, `"Count: $count"` inserts the value, much like Java concatenation.
+- `{ ... }` is a lambda, roughly like a small anonymous function. `Button(onClick = { count++ })` passes one as the click callback. When the last parameter is a lambda, Kotlin lets it move outside the parentheses: `Button { Text("OK") }` is the same trailing-lambda style. Compose uses nested lambdas to describe children.
+- In `items(rows) { row -> Text(row) }`, `row` names the lambda argument. If the argument is omitted, Kotlin's implicit name `it` is available: `{ Text(it) }`.
+- `Column { ... }` is a composable DSL block: its lambda has a `ColumnScope` receiver, which provides column-specific child helpers. Read it as “declare these children inside this column”; it does not create a Java-style `Column` variable that you later mutate.
+- `by` delegates property reads and writes to another object. In `var count by remember { mutableIntStateOf(0) }`, `count` reads/writes the Compose state holder's value; `remember` keeps that holder for this composable's current stay in the composition.
+
+Here is the Home counter's path through the code. [`TraceLab()`](../app/src/main/java/dev/demo/uitracing/MainActivity.kt#L82) creates `counter` as Compose state and passes `{ counter++ }` as the `increment` callback to [`Overview()`](../app/src/main/java/dev/demo/uitracing/MainActivity.kt#L207):
+
+```kotlin
+var counter by remember { mutableIntStateOf(0) }
+```
+
+Inside Overview, [`Button(onClick = increment)`](../app/src/main/java/dev/demo/uitracing/MainActivity.kt#L221) invokes that callback after a tap. `counter++` writes a new value to the state holder. Compose has recorded that Overview read the value, so it schedules the affected UI to be recomposed; the `Text("$counter")` at [MainActivity.kt:218](../app/src/main/java/dev/demo/uitracing/MainActivity.kt#L218) then reads the current value and displays it. This resembles changing a model and refreshing a View, but there is no manual `findViewById()` or `setText()` call. Recomposition means Compose re-evaluates the relevant UI description; it does not guarantee that a new frame was drawn.
+
 Start at `app/src/main/java/dev/demo/uitracing/MainActivity.kt`:
 
 1. `MainActivity.onCreate()` calls `setContent`.
 2. `TraceLab()` owns screen selection and shared demo state.
 3. `Overview`, `Components`, `FormsScreen`, `MotionScreen`, and `FlowScreen` build the pages.
-4. `LazyColumn` and `LazyVerticalGrid` create rows/tiles only as needed while scrolling.
+4. `LazyColumn` and `LazyVerticalGrid` compose visible rows/tiles and may keep a small beyond-viewport window for prefetch or reuse; they do not eagerly compose the whole 100-row/60-tile data set.
 
 Try the Home page's **Recompose** button. The counter changes because Compose state changes, not because the app manually finds a `TextView` and assigns text. Open the dialog, turn on animated detail, then move the slider. Each action gives the trace a different interaction to correlate with events and snapshots.
 
 ## 3. State and lifecycle: where Java developers often pause
 
-`remember { mutableStateOf(...) }` is a small state holder associated with the current composition. It is convenient for this demo screen. If the composable leaves the composition, its remembered state goes away. For app state that should survive navigation/configuration changes, use a `ViewModel` and expose state from it.
+`remember { mutableStateOf(...) }` is a small state holder associated with the current composition. It is convenient for this demo screen. If the composable leaves the composition, its remembered state goes away. `rememberSaveable` can restore supported small UI values across configuration changes and Android recreation when saved state is available; it is not durable storage, and it does not automatically preserve a value when this app removes a tab's composable from the composition. A `ViewModel` can retain screen state across configuration changes, while navigation/state-saving or persistent storage is needed for other lifetimes. Choose the owner based on how long the value should live.
 
 Do not use an ordinary local variable for a value that should redraw the screen:
 
@@ -81,14 +100,14 @@ A coroutine is a task that can suspend and resume without blocking a thread whil
 Flow has a few forms with different jobs:
 
 - **`StateFlow<T>`:** current state. It always has a current value; a new collector gets the latest state. On the Flow page, tap **Update state** and see the displayed count change.
-- **`SharedFlow<T>`:** broadcast events to active collectors. This demo uses it for a one-off event message. Events emitted before a collector is listening are not replayed with this configuration.
+- **`SharedFlow<T>`:** a configurable broadcast stream. This demo configures one with no replay and uses it for a transient event message; an event emitted with no active collector is not replayed later.
 - **Cold `flow { ... }`:** work starts when a collector collects it. On the Flow page, tap **Start cold flow**. The sequence emits five values with a short suspension between them.
-- **`flowOn(Dispatchers.Default)`:** chooses the context for upstream flow work. UI state is still updated by the collector in the screen's coroutine scope.
+- **`flowOn(Dispatchers.Default)`:** changes the coroutine context for work upstream of `flowOn` (here, the `flow { ... }` builder). It does not move the downstream `collect` callback: that runs in the context of the coroutine started by the button handler, which is the UI scope here. So `streamProgress = it` updates Compose state from that collector. This tiny demo uses `Default` to show the boundary; it is not a recommendation to move every flow there.
 - **`collectAsStateWithLifecycle()`:** adapts a `StateFlow` to Compose state and stops UI collection when the Android lifecycle is not active.
 
-In Java terms, a `Flow` is not simply a `List` or a `Future`: it is an asynchronous stream that can emit over time. A `StateFlow` is the state-holder variant; a `SharedFlow` is a configurable hot event stream. Structured coroutine scopes define who owns cancellation. Look at `FlowScreen()` and follow the button handlers into the flow operations.
+In Java terms, a `Flow` is not simply a `List` or a `Future`: it is an asynchronous stream that can emit over time. A `StateFlow` is the state-holder variant; a `SharedFlow` is a configurable hot stream. Structured coroutine scopes define who owns cancellation. To follow the actual path in [`FlowScreen()`](../app/src/main/java/dev/demo/uitracing/MainActivity.kt#L137), start at **Start cold flow** ([lines 160–166](../app/src/main/java/dev/demo/uitracing/MainActivity.kt#L160)): the click launches a coroutine, the cold builder emits five numbers with `delay`, `flowOn` selects the upstream context, and `collect` writes each number into `streamProgress`, which the screen displays at line 159. The **Update state** button updates the `MutableStateFlow`; `collectAsStateWithLifecycle()` exposes its latest value to Compose. The event button calls `tryEmit`, and the `LaunchedEffect` collector displays received events.
 
-In this sample the `MutableStateFlow` is created with `remember` inside `FlowScreen`. When you switch tabs, that composable leaves the composition and its remembered state is discarded. Returning creates a new flow at its initial value. That is intentional: it demonstrates the lifetime of screen-local state. To retain state across screen changes, create it in a longer-lived owner, such as a ViewModel:
+In this sample the `MutableStateFlow`, event stream, and stream progress are created with `remember` or local Compose state inside `FlowScreen`. `TraceLab` uses `when` to show only the selected tab's page ([lines 111–125](../app/src/main/java/dev/demo/uitracing/MainActivity.kt#L111)); switching away removes `FlowScreen` from the composition. Its remembered values are discarded, its `LaunchedEffect` collector is cancelled, and work launched in its `rememberCoroutineScope` is cancelled too. Returning creates fresh state; tapping **Start cold flow** then creates and collects a new cold flow. This is why the screen's prompt says to switch tabs while the stream runs. A ViewModel can own state/work for a longer screen or navigation lifetime:
 
 ```kotlin
 class CounterViewModel : ViewModel() {
@@ -99,7 +118,9 @@ class CounterViewModel : ViewModel() {
 }
 ```
 
-Then collect `viewModel.count` with `collectAsStateWithLifecycle()`. State ownership and collection lifetime are separate choices: the ViewModel can keep the value while the screen stops collecting it.
+This is a model sketch, not a paste-ready file: it needs imports for `ViewModel`, `MutableStateFlow`, `asStateFlow`, and `update`, plus the lifecycle ViewModel and coroutines dependencies. It also omits how the app obtains/provides the ViewModel (for example, with Compose's `viewModel()` helper or dependency injection). `viewModelScope` is useful when launching coroutines from the ViewModel; this small example does not launch any work there.
+
+Then collect `viewModel.count` with `collectAsStateWithLifecycle()` from the screen. State ownership and collection lifetime are separate choices: the ViewModel can keep the value while the screen stops collecting it. A ViewModel survives configuration change, but not arbitrary process death without saved or persistent state.
 
 ## 5. What each screen adds to a trace
 
@@ -156,7 +177,7 @@ ANDROID_SERIAL=YOUR_DEVICE_SERIAL ANDROID_HOME="$ANDROID_HOME" ANDROID_SDK_ROOT=
 
 Replace `YOUR_DEVICE_SERIAL` with the serial shown by `adb devices -l`.
 
-The test drives all seven screens: repeated state updates, animated visibility, dialog open/close, gallery filter entry, long-list and grid scrolling/taps, form entry, AndroidView interop, and Flow state/event work. It verifies UI outcomes; it does **not** measure performance because instrumentation affects timing. Run this functional check separately from `include_everything` tracing: the high-volume trace can make a device-side test time out.
+The [E2E test source](../app/src/androidTest/java/dev/demo/uitracing/TraceLabE2ETest.kt) shows the exact actions and visible assertions. It drives all seven screens: repeated state updates, animated visibility, dialog open/close, gallery filter entry, long-list and grid scrolling/taps, form entry, AndroidView interop, and Flow state/event work. It verifies UI outcomes; it does **not** measure performance because instrumentation affects timing. Run this functional check separately from `include_everything` tracing: the high-volume trace can make a device-side test time out.
 
 ## 7. Capture the real Compose hierarchy trace
 

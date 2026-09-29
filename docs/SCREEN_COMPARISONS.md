@@ -2,7 +2,7 @@
 
 These seven comparisons pair each Trace Lab screen with the matching Compose UI hierarchy in the local Perfetto branch viewer. They all come from one Pixel 4 / Android 13 screen-tour trace. We switched to each tab while recording, found the snapshot where that screen's title entered the captured node tree, and selected that title in the Perfetto tree. The trace produced 76 hierarchy snapshots. The screenshot labels give each chosen snapshot index.
 
-The app capture is on the left; the corresponding UI Hierarchy view is on the right. In each viewer capture, **3D Stack** is off and **Only visible** is on so bounds line up with the phone viewport. The heading `ComposeNode` is selected, so the right-hand properties panel shows the same screen title visible on the phone. The app and Perfetto captures show the same stable screen state, but they are separate screenshots rather than synchronized video frames.
+The app capture is on the left; the corresponding UI Hierarchy view is on the right. In each viewer capture, **3D Stack** is off and **Only visible** is on to make visible nodes easier to compare with the phone viewport. The heading `ComposeNode` is selected, so the right-hand properties panel shows the same screen title visible on the phone. These pairs match the page by title and state; they are separate screenshots rather than synchronized video frames or pixel-perfect layout measurements. See the [bounds note](IMAGE_GALLERY.md#ui-hierarchy-snapshot-scrubber) for a coordinate mismatch present in the older snapshot gallery.
 
 ## How to read a pair
 
@@ -73,7 +73,7 @@ The tree includes the StateFlow count, coroutine update button, SharedFlow event
 
 Follow the source checkout and build steps in [SETUP.md](SETUP.md), install the harness APK, then capture with [`scripts/capture_trace.sh`](../scripts/capture_trace.sh). While the 60-second capture is active, visit Home, Gallery, Feed, Grid, Forms, Motion, and Flow in order and leave each visible briefly. Open the resulting trace in the local UI from the same Perfetto checkout and choose **UI Hierarchy**. Use the trace's tree and screen headings to find a snapshot for each page; snapshot indices vary between runs. For the checked-in screenshots, the exact captured file was `traces/compose-all-screens-final.pftrace` and is intentionally left out of the public repo.
 
-To locate the snapshots from SQL instead of scrubbing manually, open **Query (SQL)** in the matching local viewer and run this query. It finds the nearest snapshot to each heading node version; the ordered index is the slider's 1-based snapshot number:
+To locate snapshots from SQL instead of scrubbing manually, open **Query (SQL)** in the matching local viewer, paste this query, and click **Run**. SQL's `WITH` sections create temporary named results: `app_snapshots` numbers this app's captures in time order, and `screen_headings` finds the seven page-title nodes. The final query pairs each title with the closest snapshot and shows the slider's 1-based index. This route is optional; you can use the UI scrubber and search for the page title instead.
 
 ```sql
 INCLUDE PERFETTO MODULE android.ui_hierarchy;
@@ -115,3 +115,5 @@ ORDER BY heading.ts;
 ```
 
 For each result, move the hierarchy scrubber to `snapshot_index`, then select that page's heading node in the tree. To make a comparison like the screenshots here, turn off **3D Stack**, turn on **Only visible**, keep the app window selected, and screenshot the full viewer. Keep the original phone and viewer screenshots at full resolution; scale them only in the side-by-side comparison image.
+
+For example, the `Recomposition playground` row returned index **1** in the checked-in trace. The Home comparison above shows that phone screen beside snapshot 1, with its title node selected. A new recording will usually produce different indices because snapshot timing depends on device activity and how long each page stays open.
