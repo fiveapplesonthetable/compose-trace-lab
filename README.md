@@ -4,6 +4,8 @@ A runnable Compose teaching app and a real Perfetto UI hierarchy capture setup. 
 
 ![Compose Trace Lab running beside the Perfetto hierarchy viewer](docs/images/showcase.png)
 
+In the hierarchy pane, **Only visible** is unchecked. The Home screen uses a vertically scrollable `Column`, so the viewer also outlines descendants currently below the viewport; its 3D stack offsets hierarchy levels to make them easier to distinguish. Those outlines are not evidence that Compose drew outside the window. Turn on **Only visible** or switch off **3D Stack** to inspect the on-screen 2D bounds.
+
 ## Why the hierarchy trace is useful
 
 The captured trace was produced by the app with the AndroidX Compose hooks and matching Perfetto UI. In a 60-second interactive session, it recorded 126 snapshots across windows and 101 frames for the app's main window. It contains 8,950 composable calls, 3,319 scope events, 860 scope invalidations, 3,244 state reads, 1,716 state writes, 1,878 state changes, 622 animation frames, and 21 scroll events. The recomposition-cause table attributed a changed integer state to `TraceLab` in `MainActivity.kt`. This is enough to follow “what state changed, which scopes ran, and what UI tree was present?” alongside the regular frame and scheduler timeline.
