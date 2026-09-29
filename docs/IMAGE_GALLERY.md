@@ -1,8 +1,8 @@
 # Screenshot gallery
 
-These are full-resolution PNG screenshots made from the Pixel 4 app and the local Perfetto development UI. Device screenshots are 1080×2280; viewer captures are 2000×1300. They are not cropped. The two-pane showcase at the end of the README is scaled to fit, while its component source captures remain full size.
+These are full-resolution PNG screenshots made from the Pixel 4 app and the local Perfetto development UI. Device screenshots are 1080×2280; viewer captures are 2000×1300. They are not cropped. The two-pane showcase and seven screen comparisons are scaled to fit, while their component source captures remain full size.
 
-The set contains 100 images: 20 app states, 42 hierarchy snapshots (21 timestamps in both 2D and 3D), 35 selected-node views, one timing timeline, and one side-by-side showcase. Snapshot pairs show the same scrubbed timestamp in the two display modes. Node captures show different selections in the viewer tree and properties pane.
+The set contains 121 images: 27 app states, seven screen-matched Perfetto hierarchy views, 42 hierarchy snapshots (21 timestamps in both 2D and 3D), 35 selected-node views, seven side-by-side app/Perfetto comparisons, one timing timeline, and two overview images. Snapshot pairs show the same scrubbed timestamp in the two display modes. Node captures show different selections in the viewer tree and properties pane. The [per-screen comparisons](SCREEN_COMPARISONS.md) explain how the seven paired states were selected and what to look for in each viewer pane.
 
 ## App states
 
@@ -32,6 +32,18 @@ Representative device screens:
 ![Home screen with Compose state, Canvas, and View interop](images/app-overview.png)
 
 ![Flow screen with coroutine and Flow controls](images/app-flow-coroutine.png)
+
+## Matched app screens and hierarchy snapshots
+
+Each comparison uses the screen title captured in the Compose tree and selects that title node in Perfetto. Pair sources are also linked at full resolution in the [comparison tutorial](SCREEN_COMPARISONS.md).
+
+- [Home · snapshot 1](images/screen-pairs/home.png) ([phone source](images/matched/app-home.png), [Perfetto source](images/matched/perfetto-home.png))
+- [Gallery · snapshot 26](images/screen-pairs/gallery.png) ([phone source](images/matched/app-gallery.png), [Perfetto source](images/matched/perfetto-gallery.png))
+- [Feed · snapshot 32](images/screen-pairs/feed.png) ([phone source](images/matched/app-feed.png), [Perfetto source](images/matched/perfetto-feed.png))
+- [Grid · snapshot 39](images/screen-pairs/grid.png) ([phone source](images/matched/app-grid.png), [Perfetto source](images/matched/perfetto-grid.png))
+- [Forms · snapshot 44](images/screen-pairs/forms.png) ([phone source](images/matched/app-forms.png), [Perfetto source](images/matched/perfetto-forms.png))
+- [Motion · snapshot 53](images/screen-pairs/motion.png) ([phone source](images/matched/app-motion.png), [Perfetto source](images/matched/perfetto-motion.png))
+- [Flow · snapshot 61](images/screen-pairs/flow.png) ([phone source](images/matched/app-flow.png), [Perfetto source](images/matched/perfetto-flow.png))
 
 ## UI hierarchy snapshot scrubber
 

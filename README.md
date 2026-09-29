@@ -17,7 +17,8 @@ In practice, this is useful for answering structural and causal questions during
 1. Read **[The Compose and tracing tutorial](docs/TUTORIAL.md)**. It explains the screens and tracing concepts from a Views/XML starting point.
 2. Follow **[the full setup and rebuild guide](docs/SETUP.md)** to check out the matching Perfetto branch and AndroidX change, build the actual hierarchy-enabled APK, run its instrumented journey, capture, and open the trace.
 3. Use [`scripts/capture_trace.sh`](scripts/capture_trace.sh) after installing the hierarchy-enabled app. It encodes the config with the matching branch `protoc` before sending it to the device.
-4. Browse the [100-image screenshot gallery](docs/IMAGE_GALLERY.md) for full-device app states, 2D/3D hierarchy snapshots, node inspections, and the timing timeline.
+4. Browse the [121-image screenshot gallery](docs/IMAGE_GALLERY.md) for full-device app states, 2D/3D hierarchy snapshots, node inspections, and the timing timeline.
+5. Open [per-screen app-to-Perfetto comparisons](docs/SCREEN_COMPARISONS.md): there is one matched comparison for each of the seven app screens.
 
 ## What the app teaches
 
@@ -30,7 +31,7 @@ The instrumentation journey exercises all seven screens and checks UI results. I
 
 ## Captures and device coverage
 
-The real hierarchy screenshot is [`perfetto-ui-hierarchy.png`](docs/images/perfetto-ui-hierarchy.png); the companion timing view is [`perfetto-timeline.png`](docs/images/perfetto-timeline.png). Screenshots are full-size, uncropped captures. The tested Pixel 4/Pixel 4 XL devices ran Android 13/API 33. Their system Perfetto exposes app FrameTimeline/ftrace data; this hierarchy setup works by using the matching app-side Perfetto producer/AARs and source-built viewer.
+The original hierarchy screenshot is [`perfetto-ui-hierarchy.png`](docs/images/perfetto-ui-hierarchy.png); the companion timing view is [`perfetto-timeline.png`](docs/images/perfetto-timeline.png). Raw app and Perfetto captures are full-size and uncropped; the comparison panels scale those sources to fit side by side. The tested Pixel 4/Pixel 4 XL devices ran Android 13/API 33. Their system Perfetto exposes app FrameTimeline/ftrace data; this hierarchy setup works by using the matching app-side Perfetto producer/AARs and source-built viewer.
 
 Winscope ViewCapture, SurfaceFlinger layer-stack/3D, and synchronized video sources are separate, device/build-dependent capabilities. See the tutorial for how to check source registration and what each view can establish; this lab does not label a process timeline as a Winscope layer stack.
 
@@ -42,4 +43,4 @@ Winscope ViewCapture, SurfaceFlinger layer-stack/3D, and synchronized video sour
 - [`androidx-harness/`](androidx-harness): local build harness that compiles the CL-patched Compose sources.
 - [`docs/images/`](docs/images/): app and Perfetto screenshots.
 
-The screenshots include 20 uncropped Pixel app states, 42 hierarchy snapshots scrubbed in both 2D and 3D, 35 node selections, a timeline, and a side-by-side showcase. They are examples from one capture and are not a claim that every Compose API or possible UI state is covered.
+The screenshot library includes 27 uncropped Pixel app states, seven additional full-size Perfetto hierarchy states matched to Home, Gallery, Feed, Grid, Forms, Motion, and Flow, 42 hierarchy snapshots scrubbed in both 2D and 3D, 35 node selections, seven side-by-side screen comparisons, a timing timeline, and two overview images (121 files total). The per-screen comparison trace recorded 76 snapshots; each comparison identifies the snapshot where that screen's heading node was selected. These are examples from the lab, not a claim that every Compose API or possible UI state is covered.

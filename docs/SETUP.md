@@ -22,7 +22,13 @@ git -C androidx-hierarchy checkout FETCH_HEAD
 
 For this checkout, the tested source revisions were Perfetto `7ef15003` and AndroidX `3a1d0ceab3e969fe0ab011628b96bfe902932040`. Record the actual hashes after checkout; Gerrit patchsets and development branches can move.
 
-Install JDK 17, Python 3, Node/pnpm (Perfetto UI), Git, Ninja, and the Android SDK command-line tools. Set `ANDROID_HOME` (or `ANDROID_SDK_ROOT`) to the SDK directory. Install Android SDK Platform 35, Build Tools 36.0.0, and platform-tools. Install the Perfetto host dependencies and build its tools:
+Install JDK 17, Python 3, Node/pnpm (Perfetto UI), Git, Ninja, and the Android SDK command-line tools. Set `ANDROID_HOME` (or `ANDROID_SDK_ROOT`) to the SDK directory. Install Android SDK Platform 37.1, Build Tools 36.0.0, and platform-tools. Platform 37.1 is required by the AndroidX harness and tracing library; Platform 35 is only used by the standalone non-tracing fallback app. Install the Perfetto host dependencies and build its tools:
+
+```sh
+sdkmanager "platforms;android-37.1" "build-tools;36.0.0" "platform-tools"
+```
+
+Then install the Perfetto host dependencies and build its tools:
 
 ```sh
 cd perfetto-hierarchy
@@ -36,18 +42,63 @@ cd perfetto-hierarchy
 
 ## 2. Prepare AndroidX and build the instrumented app
 
-Return to the lab directory. The preparation script adds a small app harness and the CL module to the local AndroidX checkout, and adjusts that checkout's wrapper to its required Gradle version. These are local edits in the AndroidX clone, not edits to your public lab checkout.
+In a new shell, set `WORKSPACE_DIR` to the directory containing the three cloned repositories. The preparation script adds a small app harness and the CL module to the local AndroidX checkout, and adjusts that checkout's wrapper to its required Gradle version. These are local edits in the AndroidX clone, not edits to your public lab checkout.
 
 ```sh
-cd ../compose-tracing-demo
-export LAB_DIR="$(pwd)"
+WORKSPACE_DIR="$HOME/dev" # Change this to the directory containing the clones.
+export LAB_DIR="$WORKSPACE_DIR/compose-tracing-demo"
+cd "$LAB_DIR"
 export ANDROID_HOME="$HOME/Android/Sdk" # change this to your SDK path
 export ANDROID_SDK_ROOT="$ANDROID_HOME"
-export ANDROIDX_DIR="$(cd ../androidx-hierarchy && pwd)"
-export PERFETTO_DIR="$(cd ../perfetto-hierarchy && pwd)"
+export ANDROIDX_DIR="$WORKSPACE_DIR/androidx-hierarchy"
+export PERFETTO_DIR="$WORKSPACE_DIR/perfetto-hierarchy"
 ./scripts/prepare_androidx_checkout.sh
 ./scripts/build_hierarchy_app.sh
 ```
+
+### What the AndroidX CL changes, and what the local harness adds
+
+The CL is the Compose instrumentation patch. Fetching and checking out `refs/changes/66/4328066/1` checks out the CL's source changes; you do not need to manually copy individual Kotlin files or hand-edit `Composer.kt`. The commit message describes the instrumentation hooks by module:
+
+- `compose:runtime:runtime` adds composition enter/exit, recomposition count/cause, and state mutation hooks.
+- `compose:ui:ui` adds LayoutNode lifecycle, measure/layout and lookahead pass, and pointer/key dispatch hooks.
+- `compose:animation:animation-core` adds tracing for `Animatable`, `Transition`, `InfiniteTransition`, and suspending animations.
+- `compose:foundation:foundation` adds scroll-delta and lazy-layout prefetch hooks.
+- `compose:ui:ui-tracing-perfetto` implements `UiHierarchyDataSource`, per-frame tree capture, delta compression, coordinate calculation, and event batching. The implementation is in `compose/ui/ui-tracing-perfetto/src/main/java/androidx/compose/ui/tracing/perfetto/` (`UiHierarchyTracing`, `UiHierarchyDataSource`, `Capturer`, `SnapshotEncoder`, and record/config helpers).
+
+After checkout, verify the CL and its public registration API before building:
+
+```sh
+git -C "$ANDROIDX_DIR" log -1 --format='%H%n%s%n%b'
+test -f "$ANDROIDX_DIR/compose/ui/ui-tracing-perfetto/src/main/java/androidx/compose/ui/tracing/perfetto/UiHierarchyTracing.kt"
+rg -n 'fun install|const val NAME' \
+  "$ANDROIDX_DIR/compose/ui/ui-tracing-perfetto/src/main/java/androidx/compose/ui/tracing/perfetto"
+```
+
+The app must compile against these checked-out `:compose:runtime:runtime`, `:compose:ui:ui`, `:compose:animation:animation-core`, and `:compose:foundation:foundation` projects. A Maven Compose dependency instead gives you an uninstrumented runtime and does not emit the hierarchy data.
+
+`prepare_androidx_checkout.sh` supplies the build wiring around that CL. Its changes are intentionally small and local to the AndroidX clone:
+
+1. Adds `includeProject(":compose:ui:ui-tracing-perfetto", [BuildType.COMPOSE])` and a `:trace-lab-app` project pointing at this repo's `androidx-harness/` directory in AndroidX `settings.gradle`.
+2. Sets AndroidX `gradle/wrapper/gradle-wrapper.properties` to the Gradle 9.8.0-rc-1 wrapper required by this historical checkout.
+3. Copies `androidx-harness/ui-tracing-perfetto.build.gradle` to `compose/ui/ui-tracing-perfetto/build.gradle`. That build file packages the CL capturer as an Android library and links it to the source-built Compose UI, animation, foundation, and locally built Perfetto SDK AAR.
+4. Uses `androidx-harness/build.gradle` as the app module. It points its Kotlin/manifest/resources and instrumentation source sets at this repo's `app/` directory and depends on the AndroidX source projects. It also includes the generated tracing and data source AARs.
+
+The script is safe to re-run: it removes any prior `:trace-lab-app` settings entry before adding the current relative project mapping, avoids duplicate include lines, writes the tracing module Gradle file, and sets the wrapper distribution URL. To review the exact local diff before building, use:
+
+```sh
+git -C "$ANDROIDX_DIR" status --short
+git -C "$ANDROIDX_DIR" diff -- settings.gradle gradle/wrapper/gradle-wrapper.properties compose/ui/ui-tracing-perfetto/build.gradle
+```
+
+To apply the harness edits by hand instead, keep the existing `includeProject(":compose:ui:ui-lint", [BuildType.COMPOSE])` entry and add these project includes in AndroidX `settings.gradle` (the paths assume the three checkouts are siblings as in step 1):
+
+```groovy
+includeProject(":compose:ui:ui-tracing-perfetto", [BuildType.COMPOSE])
+includeProject(":trace-lab-app", "../compose-tracing-demo/androidx-harness", [BuildType.COMPOSE])
+```
+
+Set `gradle/wrapper/gradle-wrapper.properties` to `distributionUrl=https\://services.gradle.org/distributions/gradle-9.8.0-rc-1-bin.zip`, then copy `androidx-harness/ui-tracing-perfetto.build.gradle` to the CL module's `compose/ui/ui-tracing-perfetto/build.gradle`. `androidx-harness/build.gradle` is the `:trace-lab-app` build file. The checked-in preparation script is the canonical reproducible version of those edits and calculates the app path if your workspace differs. Do not commit these AndroidX-local harness edits to the AndroidX checkout when you only intend to build this demo.
 
 The build script builds `perfetto-datasource.aar` from the Perfetto branch, builds `ui-tracing-perfetto.aar` from the CL checkout, then builds the debug app and instrumentation APK against the patched Compose sources. It places the generated AARs in the ignored `app/libs/` directory. After installation, the app's startup log should say `Perfetto UI hierarchy tracing initialized`.
 
@@ -131,7 +182,7 @@ FROM android_ui_hierarchy_capture_completeness;
 
 ## What a real capture proved here
 
-The validation capture was recorded from the hierarchy-enabled app on Pixel 4 while its E2E interaction journey ran. Decoding it with the branch schema and querying it with the matching `trace_processor_shell` produced 126 UI snapshots across windows and 101 emitted/zero skipped frames for the app's main window. The event table included 8,950 composable calls, 3,319 scope events, 860 invalidations, 3,244 state reads, 1,716 writes, 1,878 state changes, 622 animation frames, and 21 scroll events. The recomposition-cause view attributed a changed integer state to `TraceLab` in `MainActivity.kt`.
+One diagnostic capture on Pixel 4 overlapped the instrumented E2E journey. Decoding it with the branch schema and querying it with the matching `trace_processor_shell` produced 126 UI snapshots across windows and 101 emitted/zero skipped frames for the app's main window. The event table included 8,950 composable calls, 3,319 scope events, 860 invalidations, 3,244 state reads, 1,716 writes, 1,878 state changes, 622 animation frames, and 21 scroll events. The recomposition-cause view attributed a changed integer state to `TraceLab` in `MainActivity.kt`. The Pixel 4 instrumentation did not pass in that overlapped run: it ended after 10.019 seconds with an empty runner failure. The Pixel 4 XL passed. The seven-screen screenshot tour was recorded separately with manual navigation. Use the no-trace E2E run described above as the functional pass; treat the overlapped capture as a trace-overhead stress case, not a passing E2E result.
 
 That is useful for answering “which state changed, what scopes ran, and what UI tree/properties were present around this interaction?” The hierarchy view does not establish that a composable caused jank. Use the timeline, FrameTimeline, and scheduler tracks to ask whether a frame was late and what the app/system threads were doing. The counts also show why `include_everything` can be expensive: this is high-volume diagnostic tracing, not a low-overhead always-on profiler or a benchmark result.
 

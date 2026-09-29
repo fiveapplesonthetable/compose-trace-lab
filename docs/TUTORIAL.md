@@ -138,7 +138,7 @@ Each image is a full device capture with no crop. Open any screenshot at full re
 - [Perfetto: UI hierarchy, 3D stack, and node inspection](images/perfetto-ui-hierarchy.png)
 - [Perfetto: timing and scheduling timeline](images/perfetto-timeline.png)
 
-The [complete screenshot gallery](IMAGE_GALLERY.md) includes every captured app state, 21 hierarchy snapshots in both 2D and 3D, and 35 node-property selections. The source images are full-resolution captures; the gallery links each one directly.
+The [complete screenshot gallery](IMAGE_GALLERY.md) includes 27 app states, seven matched app/Perfetto screen pairs, 21 hierarchy snapshots in both 2D and 3D, 35 node-property selections, and the timing/overview images. Raw captures are full resolution; the gallery links each one directly. The [screen comparison tutorial](SCREEN_COMPARISONS.md) pairs all seven app pages with their selected Compose title node and screenshot index.
 
 ## 6. Run the end-to-end interaction journey
 
@@ -156,9 +156,7 @@ ANDROID_SERIAL=YOUR_DEVICE_SERIAL ANDROID_HOME="$ANDROID_HOME" ANDROID_SDK_ROOT=
 
 Replace `YOUR_DEVICE_SERIAL` with the serial shown by `adb devices -l`.
 
-The test drives the whole app: repeated state updates, animated visibility, dialog open/close, gallery filter entry, long-list and grid scrolling/taps, form entry, and Flow state/event work. It verifies UI outcomes. It does **not** measure performance; instrumentation itself affects timing.
-
-The test visits all seven screens: state changes, gallery filtering, lazy list/grid scrolling, form input, animation, a dialog window, AndroidView interop, and Flow updates. It checks visible outcomes; instrumentation changes timing, so use it to validate behavior, not as a performance benchmark. Run this functional check separately from `include_everything` tracing: the high-volume trace can make a device-side test time out.
+The test drives all seven screens: repeated state updates, animated visibility, dialog open/close, gallery filter entry, long-list and grid scrolling/taps, form entry, AndroidView interop, and Flow state/event work. It verifies UI outcomes; it does **not** measure performance because instrumentation affects timing. Run this functional check separately from `include_everything` tracing: the high-volume trace can make a device-side test time out.
 
 ## 7. Capture the real Compose hierarchy trace
 
