@@ -1,0 +1,30 @@
+import androidx.build.SoftwareType
+
+plugins {
+    id("AndroidXPlugin")
+    id("com.android.library")
+}
+
+android {
+    namespace = "androidx.compose.ui.tracing.perfetto"
+    compileSdkVersion = "android-37.1"
+}
+
+def composeTraceLabDir = providers.gradleProperty("composeTraceLabDir").orElse("../compose-tracing-demo").get()
+def composeTraceLabRoot = new File(composeTraceLabDir)
+if (!composeTraceLabRoot.isAbsolute()) composeTraceLabRoot = rootProject.file(composeTraceLabRoot)
+
+dependencies {
+    compileOnly(files(new File(composeTraceLabRoot, "app/libs/perfetto-datasource.aar")))
+    implementation(project(":compose:ui:ui"))
+    implementation(project(":compose:animation:animation-core"))
+    implementation(project(":compose:foundation:foundation"))
+    implementation("androidx.startup:startup-runtime:1.2.0")
+}
+
+androidx {
+    name = "Compose UI Tracing Perfetto"
+    type = SoftwareType.INTERNAL_TEST_LIBRARY
+    inceptionYear = "2026"
+    description = "Internal hierarchy tracing integration for the Perfetto Compose demo."
+}

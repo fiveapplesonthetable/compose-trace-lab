@@ -1,0 +1,9 @@
+.gradle/
+**/build/
+local.properties
+*.pftrace
+*.perfetto-trace
+*.mp4
+app/libs/*.aar
+
+.kotlin/

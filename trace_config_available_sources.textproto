@@ -1,0 +1,39 @@
+buffers: { size_kb: 65536 fill_policy: RING_BUFFER }
+duration_ms: 60000
+data_sources: {
+  config {
+    name: "android.ui.hierarchy"
+    ui_hierarchy_config {
+      include_everything: true
+      include_composition: true
+      include_modifiers: true
+      include_text_layout: true
+      include_recomposition_events: true
+      include_composable_calls: true
+      include_state_reads: true
+      include_runtime_events: true
+      include_tree_events: true
+      include_invalidations: true
+      include_layout_passes: true
+      include_input: true
+      include_animations: true
+      include_foundation_events: true
+    }
+  }
+}
+data_sources: {
+  config { name: "linux.ftrace" ftrace_config {
+    atrace_categories: "gfx"
+    atrace_categories: "view"
+    atrace_categories: "input"
+    atrace_categories: "wm"
+    atrace_categories: "am"
+    atrace_apps: "dev.demo.uitracing"
+    ftrace_events: "sched/sched_switch"
+    ftrace_events: "sched/sched_waking"
+  } }
+}
+data_sources: { config { name: "android.surfaceflinger.frame" } }
+data_sources: { config { name: "android.surfaceflinger.frametimeline" } }
+data_sources: { config { name: "linux.process_stats" } }
+data_sources: { config { name: "linux.sys_stats" } }
