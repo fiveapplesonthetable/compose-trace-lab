@@ -41,12 +41,12 @@ Platform 37.1 is the AndroidX harness and tracing library compile SDK. The Perfe
 
 ```sh
 cd perfetto-hierarchy
-./tools/install-build-deps --ui
+./tools/install-build-deps --android --ui
 ./tools/gn gen out/default
 ./tools/ninja -C out/default trace_processor_shell protoc
 ```
 
-`--ui` installs the host build dependencies and UI dependencies, including Perfetto's hermetic Node/npm. `./ui/run-dev-server` builds and serves the branch's UI at `http://127.0.0.1:10000`.
+`--android --ui` installs the host build dependencies, Android NDK needed by the SDK AAR, and UI dependencies, including Perfetto's hermetic Node/npm. `./ui/run-dev-server` builds and serves the branch's UI at `http://127.0.0.1:10000`.
 
 ## 2. Prepare AndroidX and build the instrumented app
 
