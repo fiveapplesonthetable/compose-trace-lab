@@ -64,6 +64,19 @@ export ANDROIDX_DIR="$WORKSPACE_DIR/androidx-hierarchy"
 export PERFETTO_DIR="$WORKSPACE_DIR/perfetto-hierarchy"
 ```
 
+This AndroidX checkout also expects its Kotlin/Native 2.4.20 compiler archive in the AOSP prebuilts tree. A standalone Git clone does not include that tree. Download the Linux archive from the [Kotlin 2.4.20 release](https://github.com/JetBrains/kotlin/releases/tag/v2.4.20) into the exact path AndroidX's Gradle plugin uses:
+
+```sh
+export ANDROIDX_REPO_ROOT="$(cd "$ANDROIDX_DIR/../.." && pwd)"
+export KONAN_PREBUILT_DIR="$ANDROIDX_REPO_ROOT/prebuilts/androidx/konan/nativeCompilerPrebuilts/releases/2.4.20/linux-x86_64"
+mkdir -p "$KONAN_PREBUILT_DIR"
+curl -fL \
+  "https://github.com/JetBrains/kotlin/releases/download/v2.4.20/kotlin-native-prebuilt-linux-x86_64-2.4.20.tar.gz" \
+  -o "$KONAN_PREBUILT_DIR/kotlin-native-prebuilt-linux-x86_64-2.4.20.tar.gz"
+```
+
+This is a roughly 210 MiB compiler archive. It is stored outside the lab repository and only needed for a fresh standalone AndroidX checkout.
+
 This AndroidX CL's Gradle setup expects a JDK 21 at `ANDROIDX_DIR/../../prebuilts/jdk/jdk21/linux-x86`. A full AOSP `repo` checkout may already provide it. For a standalone Git clone, point that expected path to your installed JDK 21, then use it for the AndroidX build:
 
 ```sh
