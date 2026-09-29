@@ -5,7 +5,7 @@ This lab uses two historical development revisions because the `android.ui.hiera
 - Perfetto `dev/zezeozue/ui_hierarchy` (the trace schema, Java SDK AAR, processor module, and UI viewer must come from this same branch).
 - AndroidX Gerrit change `refs/changes/66/4328066/1` (adds the Compose instrumentation hooks and `ui-tracing-perfetto` AAR).
 
-This page records the actual setup used for the checked-in app and screenshots. Expect these old revisions to require their matching Gradle, Android SDK, and source trees. On the tested Linux setup, Java 17, Android SDK platforms 35 and 37.1, Build Tools 36.0.0, Perfetto host build dependencies, and the AndroidX checkout's Gradle 9.8.0-rc-1 wrapper were used. The AndroidX harness compiles Compose runtime, UI, animation, and foundation from that checkout; replacing these with current Maven Compose artifacts silently loses the hooks.
+This page records the actual setup used for the checked-in app and screenshots. Expect these old revisions to require their matching Gradle, Android SDK, and source trees. On the tested Linux setup, JDK 17 was used for the Perfetto host build and JDK 21 for AndroidX's Gradle build; Android SDK platforms 35 and 37.1, Build Tools 36.0.0, and the AndroidX checkout's Gradle 9.8.0-rc-1 wrapper were also used. The AndroidX harness compiles Compose runtime, UI, animation, and foundation from that checkout; replacing these with current Maven Compose artifacts silently loses the hooks.
 
 ## 1. Get the source trees
 
@@ -27,7 +27,7 @@ git -C androidx-hierarchy checkout 3a1d0ceab3e969fe0ab011628b96bfe902932040
 
 These commands pin the source revisions used for the checked-in app and screenshots. The Perfetto development branch and AndroidX Gerrit patchset can move; the AndroidX commit is the fetched CL revision used here.
 
-Install JDK 17, Python 3, Git, and the Android SDK command-line tools. If you use Android Studio, install **Android SDK Command-line Tools (latest)** and **Android SDK Platform-Tools** from **Tools → SDK Manager → SDK Tools**. Perfetto supplies its own Node.js/npm; do not install Node or pnpm separately. Set the SDK location and add its command-line and platform tools to your shell path before using `sdkmanager` or `adb` (adjust the path for your machine):
+Install JDK 17, JDK 21, Python 3, Git, and the Android SDK command-line tools. On Ubuntu/Debian, for example, install the JDKs with `sudo apt-get update && sudo apt-get install openjdk-17-jdk openjdk-21-jdk`. If you use Android Studio, install **Android SDK Command-line Tools (latest)** and **Android SDK Platform-Tools** from **Tools → SDK Manager → SDK Tools**. Perfetto supplies its own Node.js/npm; do not install Node or pnpm separately. Set the SDK location and add its command-line and platform tools to your shell path before using `sdkmanager` or `adb` (adjust the path for your machine):
 
 ```sh
 export ANDROID_HOME="$HOME/Android/Sdk"
@@ -62,6 +62,27 @@ export ANDROID_SDK_ROOT="$ANDROID_HOME"
 export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
 export ANDROIDX_DIR="$WORKSPACE_DIR/androidx-hierarchy"
 export PERFETTO_DIR="$WORKSPACE_DIR/perfetto-hierarchy"
+```
+
+This AndroidX CL's Gradle setup expects a JDK 21 at `ANDROIDX_DIR/../../prebuilts/jdk/jdk21/linux-x86`. A full AOSP `repo` checkout may already provide it. For a standalone Git clone, point that expected path to your installed JDK 21, then use it for the AndroidX build:
+
+```sh
+export ANDROIDX_JDK21_HOME="/usr/lib/jvm/java-21-openjdk-amd64" # change to your JDK 21 path
+export ANDROIDX_REPO_ROOT="$(cd "$ANDROIDX_DIR/../.." && pwd)"
+if [ ! -x "$ANDROIDX_REPO_ROOT/prebuilts/jdk/jdk21/linux-x86/bin/java" ]; then
+  mkdir -p "$ANDROIDX_REPO_ROOT/prebuilts/jdk/jdk21"
+  ln -s "$ANDROIDX_JDK21_HOME" "$ANDROIDX_REPO_ROOT/prebuilts/jdk/jdk21/linux-x86"
+fi
+export JAVA_HOME="$ANDROIDX_JDK21_HOME"
+export PATH="$JAVA_HOME/bin:$PATH"
+```
+
+Keep JDK 17 installed as well; the Perfetto host setup uses it. In a fresh shell, repeat the workspace/SDK exports and the JDK 21 setup before running the Gradle commands below.
+
+Now prepare the AndroidX harness and build the app:
+
+```sh
+cd "$LAB_DIR"
 ./scripts/prepare_androidx_checkout.sh
 ./scripts/build_hierarchy_app.sh
 ```
